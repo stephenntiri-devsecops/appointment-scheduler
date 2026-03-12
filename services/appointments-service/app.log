@@ -1,0 +1,91 @@
+> Task :clean
+
+> Task :compileJava
+/root/appiontments/services/appointments-service/src/main/java/com/acme/scheduler/appointments/security/SecurityConfig.java:34: warning: [removal] jwt() in OAuth2ResourceServerConfigurer has been deprecated and marked for removal
+      .oauth2ResourceServer(oauth2 -> oauth2.jwt());
+                                            ^
+  where H is a type-variable:
+    H extends HttpSecurityBuilder<H> declared in class OAuth2ResourceServerConfigurer
+1 warning
+
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.6)
+
+2026-02-15T23:52:56.821-05:00  INFO 109736 --- [           main] c.a.s.a.AppointmentsServiceApplication   : Starting AppointmentsServiceApplication using Java 21.0.10 with PID 109736 (/root/appiontments/services/appointments-service/build/classes/java/main started by root in /root/appiontments/services/appointments-service)
+2026-02-15T23:52:56.825-05:00  INFO 109736 --- [           main] c.a.s.a.AppointmentsServiceApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-02-15T23:52:58.415-05:00  INFO 109736 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-02-15T23:52:58.486-05:00  INFO 109736 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 55 ms. Found 2 JPA repository interfaces.
+2026-02-15T23:52:59.888-05:00  INFO 109736 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-02-15T23:52:59.904-05:00  INFO 109736 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-02-15T23:52:59.907-05:00  INFO 109736 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.33]
+2026-02-15T23:53:00.159-05:00  INFO 109736 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-02-15T23:53:00.162-05:00  INFO 109736 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3253 ms
+2026-02-15T23:53:01.206-05:00  INFO 109736 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-02-15T23:53:01.565-05:00  INFO 109736 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@11d1735e
+2026-02-15T23:53:01.571-05:00  INFO 109736 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-02-15T23:53:01.626-05:00  INFO 109736 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/scheduler (PostgreSQL 15.16)
+2026-02-15T23:53:01.680-05:00  INFO 109736 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.031s)
+2026-02-15T23:53:01.718-05:00  INFO 109736 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 1
+2026-02-15T23:53:01.721-05:00  INFO 109736 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-02-15T23:53:02.024-05:00  INFO 109736 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-02-15T23:53:02.133-05:00  INFO 109736 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
+2026-02-15T23:53:02.196-05:00  INFO 109736 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-02-15T23:53:02.624-05:00  INFO 109736 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-02-15T23:53:04.142-05:00  INFO 109736 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-02-15T23:53:04.198-05:00  INFO 109736 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-02-15T23:53:04.634-05:00  INFO 109736 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-02-15T23:53:05.121-05:00  INFO 109736 --- [           main] i.t.s.WorkflowServiceStubsImpl           : Created WorkflowServiceStubs for channel: ManagedChannelOrphanWrapper{delegate=ManagedChannelImpl{logId=1, target=localhost:7233}}
+2026-02-15T23:53:05.394-05:00  WARN 109736 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-02-15T23:53:06.141-05:00  INFO 109736 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-02-15T23:53:06.230-05:00  WARN 109736 --- [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'filterChain' defined in class path resource [com/acme/scheduler/appointments/security/SecurityConfig.class]: Failed to instantiate [org.springframework.security.web.SecurityFilterChain]: Factory method 'filterChain' threw exception with message: No qualifying bean of type 'org.springframework.security.oauth2.jwt.JwtDecoder' available
+2026-02-15T23:53:06.232-05:00  INFO 109736 --- [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-02-15T23:53:06.234-05:00  INFO 109736 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-02-15T23:53:06.243-05:00  INFO 109736 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-02-15T23:53:06.249-05:00  INFO 109736 --- [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-02-15T23:53:06.284-05:00  INFO 109736 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-02-15T23:53:06.321-05:00 ERROR 109736 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Method filterChain in com.acme.scheduler.appointments.security.SecurityConfig required a bean of type 'org.springframework.security.oauth2.jwt.JwtDecoder' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'org.springframework.security.oauth2.jwt.JwtDecoder' in your configuration.
+
+
+> Task :bootRun FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':bootRun'.
+> Process 'command '/usr/lib/jvm/java-21-openjdk-21.0.10.0.7-1.el9.x86_64/bin/java'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 20s
+5 actionable tasks: 5 executed

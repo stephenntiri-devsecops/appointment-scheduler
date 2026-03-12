@@ -1,0 +1,29 @@
+# Java / Gradle
+**/build/
+**/.gradle/
+**/out/
+*.jar
+
+# Node / Next.js
+**/node_modules/
+**/.next/
+**/dist/
+
+# Logs
+*.log
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+services/.env
+.env
+.env.*
+!.env.example
