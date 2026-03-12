@@ -1,5 +1,0 @@
-<dependency>
-  <groupId>com.stripe</groupId>
-  <artifactId>stripe-java</artifactId>
-  <version>26.11.0</version>
-</dependency>
