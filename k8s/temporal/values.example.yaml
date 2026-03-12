@@ -1,0 +1,24 @@
+server:
+  config:
+    persistence:
+      default:
+        driver: "sql"
+        sql:
+          driver: "postgres12"
+          host: "REPLACE_RDS_ENDPOINT"
+          port: 5432
+          database: "temporal"
+          user: "temporal"
+          password: "REPLACE_WITH_SECRET"
+      visibility:
+        driver: "sql"
+        sql:
+          driver: "postgres12"
+          host: "REPLACE_RDS_ENDPOINT"
+          port: 5432
+          database: "temporal_visibility"
+          user: "temporal"
+          password: "REPLACE_WITH_SECRET"
+
+prometheus:
+  enabled: true

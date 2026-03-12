@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:${DB_HOST}}:${DB_PORT:5432}/${DB_NAME:scheduler}
+    username: ${DB_USER:scheduler}
+    password: ${DB_PASSWORD}
+
+app:
+  temporal:
+    target: ${TEMPORAL_TARGET:temporal-frontend.temporal.svc:7233}
+    namespace: ${TEMPORAL_NAMESPACE:default}
+    taskQueue: ${TEMPORAL_TASK_QUEUE:appointment-notifications}

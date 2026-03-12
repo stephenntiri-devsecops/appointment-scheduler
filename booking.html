@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book Appointment</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; max-width: 900px; }
+    h1 { margin: 0 0 12px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
+    label { display:block; font-weight:600; margin-top: 10px; }
+    input, select { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #ccc; border-radius: 8px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btns { display:flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    button { padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #111; color: #fff; cursor:pointer; }
+    button.secondary { background: #fff; color:#111; border:1px solid #ccc; }
+    pre { background: #0b1020; color: #dce7ff; padding: 12px; border-radius: 10px; overflow:auto; }
+    .hint { color:#555; font-size: 0.92rem; margin-top: 6px; }
+    .ok { color: #0a7a2f; font-weight: 700; }
+    .bad { color: #b00020; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Appointment Booking (HTML)</h1>
+  <div class="hint">
+    This page is designed specifically for your Spring Boot endpoint:
+    <code>POST /api/v1/appointments</code> on port <code>8080</code> using <code>CreateAppointmentRequest</code>.
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px;">Connection</h2>
+
+    <label for="apiBase">API Base URL</label>
+    <input id="apiBase" value="http://localhost:8080" />
+
+    <div class="hint">
+      If you host the backend elsewhere, change this.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px;">Booking Details</h2>
+
+    <div class="row">
+      <div>
+        <label for="tenantId">Tenant ID</label>
+        <input id="tenantId" value="tenant-1" />
+      </div>
+      <div>
+        <label for="clinicId">Clinic ID</label>
+        <input id="clinicId" value="clinic-1" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="providerId">Provider ID</label>
+        <input id="providerId" value="provider-1" />
+      </div>
+      <div>
+        <label for="patientId">Patient ID</label>
+        <input id="patientId" value="patient-1" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="startLocal">Start (local time)</label>
+        <input id="startLocal" type="datetime-local" />
+        <div class="hint">We convert this to UTC ISO-8601 for <code>Instant</code>.</div>
+      </div>
+      <div>
+        <label for="endLocal">End (local time)</label>
+        <input id="endLocal" type="datetime-local" />
+      </div>
+    </div>
+
+    <label for="timeZone">Time Zone</label>
+    <input id="timeZone" />
+
+    <div class="row">
+      <div>
+        <label for="email">Contact Email</label>
+        <input id="email" type="email" value="john@example.com" />
+      </div>
+      <div>
+        <label for="phone">Contact Phone</label>
+        <input id="phone" value="5551234567" />
+      </div>
+    </div>
+
+    <div class="btns">
+      <button id="bookBtn">Book Appointment</button>
+      <button class="secondary" id="fillBtn" type="button">Fill Example Times</button>
+      <button class="secondary" id="clearBtn" type="button">Clear Output</button>
+    </div>
+
+    <div class="hint">
+      Required header: <code>Idempotency-Key</code> is generated automatically on each click.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px;">Output</h2>
+    <div id="statusLine" class="hint">Ready.</div>
+    <pre id="output">{}</pre>
+  </div>
+
+<script>
+  // --- Helpers ---
+  function $(id) { return document.getElementById(id); }
+
+  function setOutput(objOrText) {
+    const out = $("output");
+    if (typeof objOrText === "string") out.textContent = objOrText;
+    else out.textContent = JSON.stringify(objOrText, null, 2);
+  }
+
+  function setStatus(text, ok) {
+    const el = $("statusLine");
+    el.textContent = text;
+    el.className = ok === true ? "ok" : ok === false ? "bad" : "hint";
+  }
+
+  // Convert datetime-local (YYYY-MM-DDTHH:mm) to ISO string in UTC (Instant-friendly)
+  function localToInstantIso(datetimeLocalValue) {
+    // new Date("2026-02-21T11:00") interprets as local time and converts to UTC in toISOString()
+    const d = new Date(datetimeLocalValue);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString(); // e.g., 2026-02-21T16:00:00.000Z
+  }
+
+  function generateIdempotencyKey() {
+    // Works in modern browsers
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "idem-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+  }
+
+  function guessTimeZone() {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+    } catch (e) {
+      return "America/New_York";
+    }
+  }
+
+  // --- Initialize ---
+  $("timeZone").value = guessTimeZone();
+
+  // Fill example times: now + 30 minutes
+  $("fillBtn").addEventListener("click", () => {
+    const now = new Date();
+    const start = new Date(now.getTime() + 5 * 60 * 1000);      // +5 minutes
+    const end = new Date(start.getTime() + 30 * 60 * 1000);     // +30 minutes
+
+    function toDatetimeLocal(d) {
+      const pad = (n) => String(n).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
+
+    $("startLocal").value = toDatetimeLocal(start);
+    $("endLocal").value = toDatetimeLocal(end);
+    setStatus("Example times filled.", true);
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    setStatus("Ready.", null);
+    setOutput("{}");
+  });
+
+  // --- Main: Book Appointment ---
+  $("bookBtn").addEventListener("click", async () => {
+    setStatus("Submitting...", null);
+
+    const apiBase = $("apiBase").value.trim().replace(/\/+$/, "");
+    const url = apiBase + "/api/v1/appointments";
+
+    const startIso = localToInstantIso($("startLocal").value);
+    const endIso = localToInstantIso($("endLocal").value);
+
+    // Basic client-side checks (keeps beginners safe)
+    if (!startIso || !endIso) {
+      setStatus("Please select valid Start and End times.", false);
+      return;
+    }
+    if (new Date(endIso) <= new Date(startIso)) {
+      setStatus("End time must be after Start time.", false);
+      return;
+    }
+
+    const payload = {
+      tenantId: $("tenantId").value.trim(),
+      clinicId: $("clinicId").value.trim(),
+      providerId: $("providerId").value.trim(),
+      patientId: $("patientId").value.trim(),
+      startTime: startIso,
+      endTime: endIso,
+      timeZone: $("timeZone").value.trim(),
+      contact: {
+        email: $("email").value.trim(),
+        phone: $("phone").value.trim()
+      }
+    };
+
+    // Show exactly what we're sending (helps debugging)
+    setOutput({
+      request: {
+        url,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "(generated)"
+        },
+        body: payload
+      }
+    });
+
+    const idemKey = generateIdempotencyKey();
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idemKey
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await res.text();
+      let body;
+      try { body = JSON.parse(text); } catch { body = text; }
+
+      if (!res.ok) {
+        setStatus(`Error: HTTP ${res.status}`, false);
+        setOutput({ error: `HTTP ${res.status}`, response: body, idempotencyKey: idemKey });
+        return;
+      }
+
+      setStatus(`Success: HTTP ${res.status}`, true);
+      setOutput({ response: body, idempotencyKey: idemKey });
+
+    } catch (err) {
+      setStatus("Network error (check backend/CORS/URL).", false);
+      setOutput({ error: String(err), tip: "Make sure appointments-service is running on http://localhost:8080" });
+    }
+  });
+</script>
+</body>
+</html>

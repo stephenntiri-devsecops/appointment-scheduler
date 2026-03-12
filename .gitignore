@@ -1,0 +1,37 @@
+# Java
+**/build/
+**/.gradle/
+**/out/
+
+# Node / Next.js
+**/node_modules/
+**/.next/
+**/dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log
+
+# Local temp
+tmp/
+temp/
+
+# Terraform if later added
+.terraform/
+*.tfstate
+*.tfstate.*

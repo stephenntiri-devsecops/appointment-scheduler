@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build appointments-service
+        working-directory: services/appointments-service
+        run: ./gradlew test build
+
+      - name: Build notifications-service
+        working-directory: services/notifications-service
+        run: ./gradlew test build
+
+      # TODO:
+      # - SAST (CodeQL)
+      # - Dependency scan + SBOM
+      # - Build container images + push to ECR
+      # - Cosign signing + provenance attestations
+      # - Helm deploy (or Argo CD sync)

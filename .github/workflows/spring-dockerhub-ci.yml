@@ -1,0 +1,193 @@
+name: ci
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  id-token: write
+
+env:
+  DOCKERHUB_USERNAME: dockeraws1
+  DOCKER_REPO_APPOINTMENTS: ${{ vars.DOCKER_REPO_APPOINTMENTS }} # e.g. appointments-service
+  DOCKER_REPO_NOTIFICATIONS: ${{ vars.DOCKER_REPO_NOTIFICATIONS }} # e.g. notifications-service
+
+jobs:
+  codeql:
+    name: SAST - CodeQL
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ "java" ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+
+  build-test-sbom-image-sign:
+    name: Build/Test + Dependency Scan + SBOM + DockerHub Push + Cosign
+    runs-on: ubuntu-latest
+    needs: [ codeql ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Build appointments-service
+        working-directory: services/appointments-service
+        run: ./gradlew test build
+
+      - name: Build notifications-service
+        working-directory: services/notifications-service
+        run: ./gradlew test build
+
+      - name: Trivy FS scan (deps/secrets/misconfig)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: "fs"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          format: "sarif"
+          output: "trivy-fs.sarif"
+          scanners: "vuln,secret,misconfig"
+          exit-code: "0"
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+      # DockerHub auth (PAT recommended)
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker metadata (appointments)
+        id: meta_appt
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_APPOINTMENTS }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Docker metadata (notifications)
+        id: meta_notif
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_NOTIFICATIONS }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push appointments image
+        id: build_appt
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: services/appointments-service
+          file: services/appointments-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta_appt.outputs.tags }}
+          labels: ${{ steps.meta_appt.outputs.labels }}
+
+      - name: Build & push notifications image
+        id: build_notif
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: services/notifications-service
+          file: services/notifications-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta_notif.outputs.tags }}
+          labels: ${{ steps.meta_notif.outputs.labels }}
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0.17.8
+
+      - name: Generate SBOM (appointments)
+        if: github.event_name != 'pull_request'
+        run: |
+          syft "${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_APPOINTMENTS }}@${{ steps.build_appt.outputs.digest }}"             -o spdx-json=sbom-appointments.spdx.json
+
+      - name: Generate SBOM (notifications)
+        if: github.event_name != 'pull_request'
+        run: |
+          syft "${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_NOTIFICATIONS }}@${{ steps.build_notif.outputs.digest }}"             -o spdx-json=sbom-notifications.spdx.json
+
+      - name: Upload SBOMs
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms
+          path: |
+            sbom-appointments.spdx.json
+            sbom-notifications.spdx.json
+
+      - name: Trivy image scan (appointments)
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_APPOINTMENTS }}@${{ steps.build_appt.outputs.digest }}
+          format: "sarif"
+          output: "trivy-image-appointments.sarif"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Trivy image scan (notifications)
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_NOTIFICATIONS }}@${{ steps.build_notif.outputs.digest }}
+          format: "sarif"
+          output: "trivy-image-notifications.sarif"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Upload Trivy Image SARIFs
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .
+          category: trivy-image
+
+      - name: Install Cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Cosign sign images (keyless)
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign --yes "${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_APPOINTMENTS }}@${{ steps.build_appt.outputs.digest }}"
+          cosign sign --yes "${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_NOTIFICATIONS }}@${{ steps.build_notif.outputs.digest }}"
+
+      - name: Cosign attest SBOMs
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign attest --yes --predicate sbom-appointments.spdx.json --type spdxjson             "${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_APPOINTMENTS }}@${{ steps.build_appt.outputs.digest }}"
+          cosign attest --yes --predicate sbom-notifications.spdx.json --type spdxjson             "${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKER_REPO_NOTIFICATIONS }}@${{ steps.build_notif.outputs.digest }}"

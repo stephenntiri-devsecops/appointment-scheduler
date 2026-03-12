@@ -1,0 +1,15 @@
+server:
+  port: 8081
+
+temporal:
+  enabled: true
+  target: ${TEMPORAL_TARGET:localhost:7233}
+  namespace: ${TEMPORAL_NAMESPACE:default}
+  task-queue: ${TEMPORAL_TASK_QUEUE:notifications-task-queue}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+

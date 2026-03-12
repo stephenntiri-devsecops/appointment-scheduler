@@ -1,0 +1,63 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.http.converter.json: DEBUG
+
+spring:
+  datasource:
+    # Local default (works if you run the app on the host)
+    # In Docker Compose, override with SPRING_DATASOURCE_URL=jdbc:postgresql://<db-service>:5432/scheduler
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scheduler}
+    username: ${SPRING_DATASOURCE_USERNAME:scheduler}
+    password: ${SPRING_DATASOURCE_PASSWORD:scheduler}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,mappings
+
+security:
+  oauth2:
+    resourceserver:
+      jwt:
+        # Local default (works if keycloak is on your host)
+        # In Docker Compose, override ISSUER_URI=http://keycloak:8080/realms/demo (or whatever your service name/port is)
+        issuer-uri: ${ISSUER_URI:http://localhost:9999/realms/demo}
+
+app:
+  temporal:
+    # Local default (works if temporal is on your host)
+    # In Docker Compose, override TEMPORAL_TARGET=temporal:7233
+    target: ${TEMPORAL_TARGET:localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:default}
+    # Pick ONE queue name and use the same in your worker config(s)
+    taskQueue: ${TEMPORAL_TASK_QUEUE:appointments-task-queue}
+
+notifications:
+  # Local default (works if notifications-service is on your host)
+  # In Docker Compose, override NOTIFICATIONS_BASE_URL=http://notifications-service:8081
+  base-url: ${NOTIFICATIONS_BASE_URL:http://localhost:8081}
+  connect-timeout-ms: ${NOTIFICATIONS_CONNECT_TIMEOUT_MS:1500}
+  read-timeout-ms: ${NOTIFICATIONS_READ_TIMEOUT_MS:2500}
+
+stripe:
+  api-key: ${STRIPE_API_KEY:}    

@@ -1,0 +1,151 @@
+services:
+  # -------------------------
+  # Temporal backing DB
+  # -------------------------
+  temporal-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal -h 127.0.0.1 -p 5432"]  
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 90s  
+    restart: unless-stopped
+
+  # -------------------------
+  # Temporal server
+  # -------------------------
+  temporal:
+    image: temporalio/auto-setup:1.24
+    depends_on:
+      temporal-db:
+        condition: service_healthy
+    environment:
+      # Temporal persistence plugin (try postgres15 first; if your image rejects it, switch to postgres12)
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-db
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 7233 || nc -z $(hostname -i | awk '{print $1}') 7233"]  
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  # -------------------------
+  # Temporal UI
+  # -------------------------
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "8088:8080"
+    restart: unless-stopped
+
+  # -------------------------
+  # Appointments DB
+  # -------------------------
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: appointments
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appointments"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # -------------------------
+  # Notifications service
+  # -------------------------
+  notifications-service:
+    build: ./notifications-service
+    image: notifications-service:0.1.0
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: "8081"
+      TEMPORAL_TARGET: "temporal:7233"
+      TEMPORAL_NAMESPACE: "default"
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    restart: unless-stopped
+
+  # -------------------------
+  # Appointments service
+  # -------------------------
+  appointments-service:
+    build: ./appointments-service
+    image: appointments-service:0.1.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      notifications-service:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+      # DB (matches postgres service above)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/appointments
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: apppass
+
+      # Temporal + downstream service
+      TEMPORAL_TARGET: temporal:7233
+      TEMPORAL_TASK_QUEUE: appointments-task-queue
+      NOTIFICATIONS_BASE_URL: http://notifications-service:8081
+      STRIPE_API_KEY: ${STRIPE_API_KEY}  
+
+      # Optional (only if you actually use JWT locally)
+      # ISSUER_URI: http://localhost:9999/realms/demo
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 45s    
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend/booking-ui
+      dockerfile: Dockerfile
+    container_name: services-frontend-1
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../frontend/booking-ui/.env.local
+    depends_on:
+      appointments-service:
+        condition: service_healthy
+    restart: unless-stopped    
